@@ -1,4 +1,6 @@
 const LOGO_KEY = "logo-site";
+const LOGO_MAX_INPUT = 8 * 1024 * 1024;
+const LOGO_MAX_DIM = 640;
 
 function applyLogo(dataUrl) {
   document.querySelectorAll("[data-logo-slot]").forEach(slot => {
@@ -35,6 +37,59 @@ function notify(message) {
   }
 }
 
+function compressImage(file) {
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, LOGO_MAX_DIM / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const isPng = file.type === "image/png" || file.type === "image/svg+xml";
+      resolve(canvas.toDataURL(isPng ? "image/png" : "image/jpeg", 0.92));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
+function storeLogo(file) {
+  if (!file.type.startsWith("image/")) {
+    notify("Escolha um arquivo de imagem (PNG, JPG, SVG ou WEBP).");
+    return;
+  }
+  if (file.size > LOGO_MAX_INPUT) {
+    notify("Imagem muito grande. Use um arquivo de até 8 MB.");
+    return;
+  }
+  const store = dataUrl => {
+    localStorage.setItem(LOGO_KEY, dataUrl);
+    applyLogo(dataUrl);
+    notify("Logomarca aplicada no topo ✨");
+  };
+  if (file.size > 400 * 1024) {
+    compressImage(file).then(dataUrl => {
+      if (dataUrl) {
+        store(dataUrl);
+        notify("Logo otimizada e aplicada no topo ✨");
+      } else {
+        notify("Não foi possível processar a imagem. Tente outro arquivo.");
+      }
+    });
+  } else {
+    const reader = new FileReader();
+    reader.onload = () => store(reader.result);
+    reader.readAsDataURL(file);
+  }
+}
+
 function initLogo() {
   applyLogo(localStorage.getItem(LOGO_KEY));
   const input = document.getElementById("logo-input");
@@ -44,22 +99,8 @@ function initLogo() {
   if (input) {
     input.addEventListener("change", () => {
       const file = input.files && input.files[0];
-      if (!file) return;
-      if (!file.type.startsWith("image/")) {
-        notify("Escolha um arquivo de imagem (PNG, JPG, SVG ou WEBP).");
-        return;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        notify("Imagem muito grande. Use um arquivo de até 2 MB.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        localStorage.setItem(LOGO_KEY, reader.result);
-        applyLogo(reader.result);
-        notify("Logomarca aplicada no topo ✨");
-      };
-      reader.readAsDataURL(file);
+      if (file) storeLogo(file);
+      input.value = "";
     });
   }
   document.querySelectorAll("[data-logo-remove]").forEach(btn => {

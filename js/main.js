@@ -1,15 +1,11 @@
 const STORAGE_KEY = "reunioes-site";
 
 function loadMeetings() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
+  return dbRead(DB.reunioes, []);
 }
 
 function saveMeetings(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  dbWrite(DB.reunioes, list);
 }
 
 function slugify(text) {
@@ -31,6 +27,46 @@ function buildRoomLink(room) {
   return base + "reuniao.html?sala=" + encodeURIComponent(room);
 }
 
+function applySiteConfig() {
+  const cfg = dbRead(DB.config, {});
+  if (!cfg || (!cfg.whatsapp && !cfg.email && !cfg.instagram)) return;
+  const box = document.getElementById("footer-contacts");
+  if (box) {
+    box.innerHTML = "";
+    if (cfg.whatsapp) {
+      const a = document.createElement("a");
+      a.href = waLink(cfg.whatsapp, cfg.zapmsg || "Olá! Quero agendar uma consulta.");
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "📱 " + formatWhats(cfg.whatsapp);
+      a.style.cssText = "color:#fff;font-weight:700;margin:0 10px;text-decoration:none";
+      box.appendChild(a);
+    }
+    if (cfg.email) {
+      const a = document.createElement("a");
+      a.href = "mailto:" + cfg.email;
+      a.textContent = "✉️ " + cfg.email;
+      a.style.cssText = "color:#fff;font-weight:700;margin:0 10px;text-decoration:none";
+      box.appendChild(a);
+    }
+    if (cfg.instagram) {
+      const a = document.createElement("a");
+      const handle = cfg.instagram.replace(/^@/, "");
+      a.href = "https://instagram.com/" + handle;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "📸 @" + handle;
+      a.style.cssText = "color:#fff;font-weight:700;margin:0 10px;text-decoration:none";
+      box.appendChild(a);
+    }
+  }
+  const float = document.getElementById("whatsapp-float");
+  if (float && cfg.whatsapp) {
+    float.href = waLink(cfg.whatsapp, cfg.zapmsg || "Olá! Quero agendar uma consulta.");
+    float.style.display = "flex";
+  }
+}
+
 function renderMeetings() {
   const list = document.getElementById("meeting-list");
   if (!list) return;
@@ -40,20 +76,20 @@ function renderMeetings() {
     list.innerHTML = "<p style='text-align:center;opacity:0.6'>Nenhuma reunião criada ainda. Agende a primeira acima 👆</p>";
     return;
   }
-  meetings.slice().reverse().forEach((m, index) => {
+  meetings.slice().reverse().forEach((m) => {
     const item = document.createElement("div");
     item.className = "meeting-item";
     const info = document.createElement("div");
     const strong = document.createElement("strong");
     strong.textContent = m.name;
     const small = document.createElement("small");
-    small.textContent = m.date ? `📅 ${m.date} · ${m.time}` : "Reunião aberta";
+    small.textContent = m.date ? `📅 ${m.date.split("-").reverse().join("/")} · ${m.time}` : "Reunião aberta";
     info.append(strong, small);
     const actions = document.createElement("div");
     actions.className = "meeting-actions";
     const enter = document.createElement("a");
     enter.className = "icon-btn";
-    enter.href = buildRoomLink(m.room).replace("index.html", "");
+    enter.href = buildRoomLink(m.room);
     enter.target = "_blank";
     enter.rel = "noopener";
     enter.textContent = "🎥 Entrar";
@@ -64,24 +100,23 @@ function renderMeetings() {
       await navigator.clipboard.writeText(enter.href);
       showToast("Link copiado! Agora é só enviar 🚀");
     });
-    const zap = document.createElement("a");
-    zap.className = "icon-btn whatsapp";
-    zap.target = "_blank";
-    zap.rel = "noopener";
-    zap.href = "https://wa.me/?text=" + encodeURIComponent(`Olá! Sua consulta online está marcada${m.date ? ` para ${m.date} às ${m.time}` : ""}. Entre pelo link: ${enter.href}`);
     if (navigator.share) {
       const share = document.createElement("button");
       share.className = "icon-btn";
       share.textContent = "📤 Compartilhar";
       share.addEventListener("click", () => navigator.share({
         title: "Consulta online",
-        text: `Sua consulta online${m.date ? ` para ${m.date}` : ""}!`,
+        text: `Sua consulta online${m.date ? ` para ${m.date.split("-").reverse().join("/")}` : ""}!`,
         url: enter.href
       }).catch(() => {}));
       actions.append(enter, copy, share);
     } else {
-      const zapText = "💬 Zap";
-      zap.textContent = zapText;
+      const zap = document.createElement("a");
+      zap.className = "icon-btn whatsapp";
+      zap.target = "_blank";
+      zap.rel = "noopener";
+      zap.href = "https://wa.me/?text=" + encodeURIComponent(`Olá! Sua consulta online está marcada${m.date ? ` para ${m.date.split("-").reverse().join("/")}` : ""}. Entre pelo link: ${enter.href}`);
+      zap.textContent = "💬 Zap";
       actions.append(enter, copy, zap);
     }
     item.append(info, actions);
@@ -95,6 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const patient = document.getElementById("patient-name").value.trim();
+      const email = (document.getElementById("patient-email") && document.getElementById("patient-email").value.trim()) || "";
       const date = document.getElementById("meeting-date").value;
       const time = document.getElementById("meeting-time").value;
       const type = document.getElementById("meeting-type").value;
@@ -105,6 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
         room,
         date,
         time,
+        email,
         createdAt: Date.now()
       });
       saveMeetings(meetings);
@@ -114,6 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
   renderMeetings();
+  applySiteConfig();
 
   const toggle = document.getElementById("theme-toggle");
   const menu = document.getElementById("theme-menu");

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link id="favicon" rel="icon" href="data:,">
+  <title>Painel Administrativo — NutriViva</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <canvas id="particles"></canvas>
+  <input type="file" id="logo-input" accept="image/*" hidden>
+
+  <div class="login-shell" id="login-shell">
+    <div class="login-card">
+      <div class="big-icon">🔐</div>
+      <h1 id="login-title">Área Administrativa</h1>
+      <p class="desc" id="login-desc">Somente o(a) nutricionista e a equipe têm acesso. Crie sua senha de administrador no primeiro uso.</p>
+      <form id="login-form">
+        <div class="field" id="current-pass-wrap" style="display:none">
+          <label for="current-pass">Senha atual</label>
+          <input id="current-pass" type="password" placeholder="Senha atual" autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label for="admin-pass" id="admin-pass-label">Crie uma senha</label>
+          <input id="admin-pass" type="password" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="admin-pass2" id="admin-pass2-label">Confirme a senha</label>
+          <input id="admin-pass2" type="password" placeholder="Repita a senha" required autocomplete="new-password">
+        </div>
+        <button class="btn btn-solid" type="submit" style="width:100%; justify-content:center" id="login-submit">🔓 Entrar no painel</button>
+      </form>
+      <p class="hint" id="login-hint">⚠️ Esta é a proteção de MVP (senha protegida localmente). Para proteção total contra invasores, conectamos um backend na próxima fase.</p>
+      <a class="back-link" href="index.html">← Voltar ao site</a>
+    </div>
+  </div>
+
+  <div class="admin-shell" id="admin-shell">
+    <div class="admin-topbar">
+      <a class="logo" href="index.html">
+        <span class="logo-slot" data-logo-slot><span class="logo-icon" data-theme-icon>🥑</span></span>
+        <span>Nutri<span style="color: var(--primary)">Viva</span> <small style="opacity:.55; font-weight:600">· painel</small></span>
+      </a>
+      <div class="nav-tools">
+        <button class="logo-btn" data-logo-upload>🖼️ Logomarca</button>
+        <button class="btn-mini" id="logout-btn">🚪 Sair</button>
+      </div>
+    </div>
+
+    <div class="admin-body">
+      <nav class="admin-nav" id="admin-nav">
+        <button data-tab="pacientes" class="active">👥 Pacientes</button>
+        <button data-tab="reunioes">🎥 Reuniões</button>
+        <button data-tab="contato">📱 Contato & Links</button>
+        <button data-tab="seguranca">🔐 Senha</button>
+      </nav>
+
+      <div class="admin-panels">
+        <section class="admin-panel active" data-panel="pacientes">
+          <div class="panel-card">
+            <h2>👥 Cadastro de pacientes</h2>
+            <p class="panel-desc">Gerencie os pacientes da sua clínica. Os dados ficam salvos no navegador deste computador.</p>
+            <form id="patient-form">
+              <div class="form-grid">
+                <div class="field"><label for="p-name">Nome completo *</label><input id="p-name" required maxlength="80"></div>
+                <div class="field"><label for="p-phone">WhatsApp</label><input id="p-phone" type="tel" placeholder="(11) 99999-9999" maxlength="20"></div>
+                <div class="field"><label for="p-email">E-mail</label><input id="p-email" type="email" maxlength="80"></div>
+                <div class="field"><label for="p-birth">Data de nascimento</label><input id="p-birth" type="date"></div>
+                <div class="field full"><label for="p-notes">Observações</label><input id="p-notes" maxlength="200" placeholder="Alergias, preferências, objetivos..."></div>
+              </div>
+              <div class="btn-row">
+                <button class="btn btn-solid" type="submit">＋ Salvar paciente</button>
+              </div>
+            </form>
+            <input class="search-box" id="patient-search" type="search" placeholder="🔎 Buscar paciente..." style="margin-top:24px">
+            <table class="data-table"><thead><tr><th>Nome</th><th>Contato</th><th>Ações</th></tr></thead><tbody id="patient-rows"></tbody></table>
+          </div>
+        </section>
+
+        <section class="admin-panel" data-panel="reunioes">
+          <div class="panel-card">
+            <h2>🎥 Reuniões & salas de vídeo</h2>
+            <p class="panel-desc">Crie a sala, copie o link e envie ao paciente. Cada sala tem código exclusivo.</p>
+            <form id="meeting-form">
+              <div class="form-grid">
+                <div class="field"><label for="m-patient">Paciente cadastrado</label><select id="m-patient"></select></div>
+                <div class="field"><label for="m-type">Tipo</label>
+                  <select id="m-type"><option>Primeira consulta</option><option>Retorno</option><option>Acompanhamento</option><option>Consulta em grupo</option></select>
+                </div>
+                <div class="field"><label for="m-date">Data</label><input id="m-date" type="date"></div>
+                <div class="field"><label for="m-time">Hora</label><input id="m-time" type="time"></div>
+              </div>
+              <div class="btn-row"><button class="btn btn-solid" type="submit">✨ Criar sala de vídeo</button></div>
+            </form>
+            <table class="data-table"><thead><tr><th>Reunião</th><th>Quando</th><th>Ações</th></tr></thead><tbody id="meeting-rows"></tbody></table>
+          </div>
+        </section>
+
+        <section class="admin-panel" data-panel="contato">
+          <div class="panel-card">
+            <h2>📱 Contato & links do site</h2>
+            <p class="panel-desc">Estes dados aparecem no rodapé do site público e no botão flutuante de WhatsApp.</p>
+            <form id="config-form">
+              <div class="form-grid">
+                <div class="field"><label for="c-wa">WhatsApp</label><input id="c-wa" type="tel" placeholder="(11) 99999-9999" maxlength="20"></div>
+                <div class="field"><label for="c-email">E-mail</label><input id="c-email" type="email" placeholder="contato@clinica.com.br"></div>
+                <div class="field"><label for="c-insta">Instagram (@usuário)</label><input id="c-insta" placeholder="@suaclinica" maxlength="40"></div>
+                <div class="field"><label for="c-zapmsg">Mensagem do WhatsApp</label><input id="c-zapmsg" placeholder="Olá! Quero agendar uma consulta." maxlength="120"></div>
+              </div>
+              <div class="btn-row"><button class="btn btn-solid" type="submit">💾 Salvar configurações</button></div>
+            </form>
+          </div>
+        </section>
+
+        <section class="admin-panel" data-panel="seguranca">
+          <div class="panel-card">
+            <h2>🔐 Senha do administrador</h2>
+            <p class="panel-desc">Sua senha é armazenada como hash SHA-256 — nem mesmo no arquivo de dados ela aparece em texto.</p>
+            <form id="password-form">
+              <div class="form-grid">
+                <div class="field"><label for="cur-pass">Senha atual</label><input id="cur-pass" type="password" required></div>
+                <div class="field"><label for="new-pass">Nova senha (mín. 6)</label><input id="new-pass" type="password" required minlength="6"></div>
+              </div>
+              <div class="btn-row"><button class="btn btn-solid" type="submit">🔑 Trocar senha</button></div>
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/themes.js"></script>
+  <script src="js/theme-engine.js"></script>
+  <script src="js/logo.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

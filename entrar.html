@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link id="favicon" rel="icon" href="data:,">
+  <title>Meu Acesso — NutriViva</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .access-shell {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 6%;
+      background: var(--hero-gradient);
+      position: relative;
+      z-index: 6;
+    }
+    .access-card {
+      background: var(--glass);
+      backdrop-filter: blur(18px);
+      border-radius: 24px;
+      padding: 42px 38px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: var(--shadow);
+    }
+    .access-card h1 { margin: 8px 0 6px; font-size: 1.55rem; }
+    .access-card .desc { opacity: 0.72; margin-bottom: 22px; font-size: 0.95rem; }
+    .appt-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-top: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+      font-size: 0.95rem;
+    }
+    #access-result { margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <div class="access-shell">
+    <div class="access-card">
+      <div class="big-icon" style="font-size:2.6rem">👋</div>
+      <h1>Acesso do paciente</h1>
+      <p class="desc">Digite o e-mail cadastrado pela clínica para ver suas consultas online.</p>
+      <form id="access-form">
+        <div class="field">
+          <label for="acc-email">Seu e-mail</label>
+          <input id="acc-email" type="email" placeholder="voce@email.com" required>
+        </div>
+        <button class="btn btn-solid" type="submit" style="width:100%; justify-content:center">🔭 Ver minhas consultas</button>
+      </form>
+      <div id="access-result"></div>
+      <a class="back-link" href="index.html">← Voltar ao site</a>
+    </div>
+  </div>
+
+  <script src="js/themes.js"></script>
+  <script src="js/theme-engine.js"></script>
+  <script src="js/storage.js"></script>
+  <script>
+    document.getElementById("access-form").addEventListener("submit", e => {
+      e.preventDefault();
+      const email = document.getElementById("acc-email").value.trim().toLowerCase();
+      const box = document.getElementById("access-result");
+      const pacientes = dbRead(DB.pacientes, []);
+      const paciente = pacientes.find(p => String(p.email || "").toLowerCase() === email);
+      const reuintes = dbRead(DB.reunioes, []);
+      const mine = reuintes.filter(m =>
+        String(m.email || "").toLowerCase() === email ||
+        (paciente && m.patientId === paciente.id)
+      );
+      box.innerHTML = "";
+      if (!mine.length) {
+        box.innerHTML = "<p class='empty-note'>Nenhuma consulta encontrada para este e-mail ainda. Confirme com a clínica o e-mail cadastrado. 💚</p>";
+        return;
+      }
+      mine.slice().reverse().forEach(m => {
+        const div = document.createElement("div");
+        div.className = "appt-item";
+        const info = document.createElement("div");
+        info.innerHTML = "<strong>" + m.name.replace(/</g, "&lt;") + "</strong>" +
+          (m.date ? "<br><small style='opacity:.6'>📅 " + m.date.split("-").reverse().join("/") + " · " + (m.time || "") + "</small>" : "<br><small style='opacity:.6'>Reunião aberta</small>");
+        const a = document.createElement("a");
+        a.className = "icon-btn";
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.href = window.location.origin + window.location.pathname.replace(/[^/]*$/, "") + "reuniao.html?sala=" + encodeURIComponent(m.room);
+        a.textContent = "🎥 Entrar";
+        div.append(info, a);
+        box.appendChild(div);
+      });
+    });
+  </script>
+</body>
+</html>
