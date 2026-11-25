@@ -52,6 +52,7 @@
     <div class="admin-body">
       <nav class="admin-nav" id="admin-nav">
         <button data-tab="pacientes" class="active">👥 Pacientes</button>
+        <button data-tab="anamnese">📋 Anamnese & Avaliação</button>
         <button data-tab="reunioes">🎥 Reuniões</button>
         <button data-tab="contato">📱 Contato & Links</button>
         <button data-tab="seguranca">🔐 Senha</button>
@@ -76,6 +77,25 @@
             </form>
             <input class="search-box" id="patient-search" type="search" placeholder="🔎 Buscar paciente..." style="margin-top:24px">
             <table class="data-table"><thead><tr><th>Nome</th><th>Contato</th><th>Ações</th></tr></thead><tbody id="patient-rows"></tbody></table>
+          </div>
+        </section>
+
+        <section class="admin-panel" data-panel="anamnese">
+          <div class="panel-card print-zone">
+            <h2>📋 Anamnese & Avaliação Nutricional</h2>
+            <p class="panel-desc">Ficha completa do paciente: antropometria, avaliação alimentar, histórico clínico e conduta. IMC e RCQ calculados automaticamente.</p>
+            <div class="anx-controls">
+              <div class="field" style="margin:0"><label for="anx-patient">Paciente *</label><select id="anx-patient" required></select></div>
+              <div class="field" style="margin:0"><label for="anx-date">Data da avaliação *</label><input id="anx-date" type="date"></div>
+              <div class="anx-actions">
+                <button class="btn btn-solid" id="anx-save" type="button">💾 Salvar ficha</button>
+                <button class="btn-mini" id="anx-print" type="button">🖨️ Imprimir</button>
+                <button class="btn-mini" id="anx-new" type="button">🆕 Nova ficha</button>
+              </div>
+            </div>
+            <div id="anx-form"></div>
+            <h3 style="margin-top:26px; font-size:1.05rem">📚 Histórico de fichas</h3>
+            <table class="data-table"><thead><tr><th>Data</th><th>Paciente</th><th>IMC</th><th>Ações</th></tr></thead><tbody id="anx-rows"></tbody></table>
           </div>
         </section>
 

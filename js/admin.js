@@ -36,6 +36,7 @@ async function enterPanel() {
   renderPatients();
   renderMeetings();
   fillPatientSelect();
+  renderAnxHistory();
   fillConfigForm();
 }
 
@@ -166,11 +167,7 @@ function initPatients() {
 }
 
 function fillPatientSelect() {
-  const sel = document.getElementById("m-patient");
-  if (!sel) return;
-  const list = dbRead(DB.pacientes, []);
-  sel.innerHTML = '<option value="">— sem vínculo —</option>' + list.map(p =>
-    `<option value="${p.id}">${esc(p.name)}</option>`).join("");
+  refreshPatientSelects();
 }
 
 function roomLink(room) {
@@ -275,10 +272,280 @@ function initPassword() {
   });
 }
 
+const ANX_SECTIONS = [
+  { id: "antropo", title: "Antropometria & Composição corporal", icon: "⚖️", fields: [
+    { id: "peso", label: "Peso (kg)", type: "number", step: "0.1" },
+    { id: "altura", label: "Altura (cm)", type: "number", step: "0.1" },
+    { id: "imc", label: "IMC (auto)", type: "computed" },
+    { id: "classImc", label: "Classificação (auto)", type: "computed" },
+    { id: "circAbd", label: "Circunferência abdominal (cm)", type: "number", step: "0.1" },
+    { id: "circQuadril", label: "Circunferência do quadril (cm)", type: "number", step: "0.1" },
+    { id: "rcq", label: "RCQ cintura/quadril (auto)", type: "computed" },
+    { id: "circPescoco", label: "Circunferência do pescoço (cm)", type: "number", step: "0.1" },
+    { id: "circBraco", label: "Circunferência do braço (cm)", type: "number", step: "0.1" },
+    { id: "pctGordura", label: "% Gordura (bioimpedância)", type: "number", step: "0.1" },
+    { id: "pctMassaMagra", label: "% Massa magra", type: "number", step: "0.1" },
+    { id: "pctAgua", label: "% Água corporal", type: "number", step: "0.1" }
+  ]},
+  { id: "queixa", title: "Queixa, expectativa & objetivos", icon: "🎯", fields: [
+    { id: "queixa", label: "Motivo da consulta / queixa principal", type: "textarea" },
+    { id: "expectativa", label: "Expectativa do paciente", type: "textarea" },
+    { id: "objetivos", label: "Objetivos (ex.: perder peso, energia, saúde intestinal)", type: "textarea" }
+  ]},
+  { id: "clinico", title: "Histórico clínico", icon: "🩺", fields: [
+    { id: "comorbidades", label: "Comorbidades (diabetes, hipertensão, tireoide...)", type: "textarea" },
+    { id: "medicacoes", label: "Medicações em uso", type: "textarea" },
+    { id: "suplementos", label: "Suplementos / fitoterápicos", type: "textarea" },
+    { id: "cirurgias", label: "Cirurgias prévias", type: "textarea" },
+    { id: "alergias", label: "Alergias e intolerâncias", type: "text" }
+  ]},
+  { id: "familiar", title: "Antecedentes familiares", icon: "👨‍👩‍👧", fields: [
+    { id: "famObesidade", label: "Obesidade", type: "check" },
+    { id: "famDiabetes", label: "Diabetes", type: "check" },
+    { id: "famDislipidemia", label: "Dislipidemia (colesterol alto)", type: "check" },
+    { id: "famHipertensao", label: "Hipertensão", type: "check" },
+    { id: "famCv", label: "Doença cardiovascular precoce", type: "check" },
+    { id: "famObs", label: "Observações familiares", type: "textarea" }
+  ]},
+  { id: "alimentar", title: "Avaliação alimentar (Recordatório 24h)", icon: "🍽️", fields: [
+    { id: "r24h", label: "Recordatório 24h — o que comeu ontem (café, almoço, jantar, lanches...)", type: "textarea" },
+    { id: "refeicoesDia", label: "Nº de refeições por dia", type: "number" },
+    { id: "ondeCome", label: "Onde faz as refeições", type: "select", options: ["Em casa", "No trabalho/fora", "Misto (casa e fora)"] },
+    { id: "apetite", label: "Apetite", type: "select", options: ["Normal", "Aumentado", "Reduzido", "Compulsivo"] },
+    { id: "restricoes", label: "Restrições / dietas alimentares", type: "textarea" },
+    { id: "aversoes", label: "Aversões e preferências", type: "textarea" }
+  ]},
+  { id: "hidratacao", title: "Hidratação, intestino & estimulantes", icon: "💧", fields: [
+    { id: "agua", label: "Água por dia (litros ou copos)", type: "text" },
+    { id: "cafe", label: "Café / energéticos por dia", type: "text" },
+    { id: "alcool", label: "Álcool", type: "select", options: ["Não consome", "Social (fins de semana)", "Frequente"] },
+    { id: "tabagismo", label: "Tabagismo", type: "select", options: ["Não fuma", "Fumante", "Ex-fumante"] },
+    { id: "intestino", label: "Hábito intestinal", type: "select", options: ["Diário", "Intervalado (3/dsem)", "Constipado", "Alternado"] }
+  ]},
+  { id: "sono", title: "Sono & estresse", icon: "😴", fields: [
+    { id: "sonoHoras", label: "Horas de sono", type: "number", step: "0.5" },
+    { id: "sonoQualidade", label: "Qualidade do sono", type: "select", options: ["Boa", "Regular", "Ruim"] },
+    { id: "estresse", label: "Nível de estresse", type: "select", options: ["Baixo", "Moderado", "Alto"] }
+  ]},
+  { id: "fisica", title: "Atividade física", icon: "🏃", fields: [
+    { id: "praticaFisica", label: "Pratica atividade física?", type: "select", options: ["Sim", "Não", "Às vezes"] },
+    { id: "tipoFisica", label: "Qual tipo", type: "text" },
+    { id: "freqFisica", label: "Frequência (x por semana)", type: "text" },
+    { id: "tipoTrabalho", label: "Rotina de trabalho", type: "select", options: ["Sentado (sedentário)", "Em pé / leve", "Moderado", "Intenso (braçal)"] }
+  ]},
+  { id: "dietas", title: "Histórico de dietas & contexto", icon: "📚", fields: [
+    { id: "dietasPrevias", label: "Dietas anteriores", type: "textarea" },
+    { id: "resultadoDietas", label: "Resultados e por que parou", type: "textarea" },
+    { id: "quemCozinha", label: "Quem cozinha em casa", type: "text" },
+    { id: "quemCompra", label: "Quem faz as compras", type: "text" },
+    { id: "orcamento", label: "Restrições de tempo/rotina relevantes", type: "textarea" }
+  ]},
+  { id: "exames", title: "Exames & conduta", icon: "🔬", fields: [
+    { id: "examesLab", label: "Exames laboratoriais recentes", type: "textarea" },
+    { id: "conduta", label: "Conduta nutricional", type: "textarea" },
+    { id: "planoAlimentar", label: "Plano alimentar prescrito", type: "textarea" },
+    { id: "proxConsulta", label: "Retorno", type: "date" },
+    { id: "obsFinais", label: "Observações gerais", type: "textarea" }
+  ]}
+];
+const ANX_FIELDS = ANX_SECTIONS.flatMap(s => s.fields);
+let anxEditingId = null;
+
+function anxInput(id) { return document.getElementById("anx-" + id); }
+
+function imcInfo() {
+  const peso = parseFloat(anxInput("peso").value);
+  const h = parseFloat(anxInput("altura").value);
+  if (!peso || !h) return { imc: "", cls: "" };
+  const imc = peso / Math.pow(h / 100, 2);
+  const r = imc.toFixed(1);
+  const cls = imc < 18.5 ? "Abaixo do peso" : imc < 25 ? "Eutrófico" : imc < 30 ? "Sobrepeso" : imc < 35 ? "Obesidade I" : imc < 40 ? "Obesidade II" : "Obesidade III";
+  return { imc: r, cls };
+}
+
+function updateCalcFields() {
+  const { imc, cls } = imcInfo();
+  anxInput("imc").value = imc;
+  anxInput("classImc").value = cls;
+  const abd = parseFloat(anxInput("circAbd").value);
+  const quadril = parseFloat(anxInput("circQuadril").value);
+  anxInput("rcq").value = abd && quadril ? (abd / quadril).toFixed(2) : "";
+}
+
+function buildAnxForm() {
+  const root = document.getElementById("anx-form");
+  root.innerHTML = "";
+  ANX_SECTIONS.forEach((sec, idx) => {
+    const d = document.createElement("details");
+    d.className = "anx";
+    if (idx === 0) d.open = true;
+    const summary = document.createElement("summary");
+    summary.innerHTML = `<span>${sec.icon} ${sec.title}</span><span class="anx-badge" data-badge="${sec.id}">0/${sec.fields.length}</span>`;
+    const wrap = document.createElement("div");
+    wrap.className = "form-grid anx-body";
+    sec.fields.forEach(f => {
+      const field = document.createElement("div");
+      field.className = "field" + (f.type === "textarea" || f.type === "check" ? " full" : "");
+      if (f.type === "textarea") {
+        field.innerHTML = `<label for="anx-${f.id}">${f.label}</label><textarea id="anx-${f.id}" rows="2"></textarea>`;
+      } else if (f.type === "check") {
+        field.innerHTML = `<label class="anx-check"><input type="checkbox" id="anx-${f.id}"> ${f.label}</label>`;
+      } else if (f.type === "select") {
+        field.innerHTML = `<label for="anx-${f.id}">${f.label}</label><select id="anx-${f.id}"><option value=""></option>${f.options.map(o => `<option>${o}</option>`).join("")}</select>`;
+      } else if (f.type === "computed") {
+        field.innerHTML = `<label>${f.label}</label><input id="anx-${f.id}" readonly class="computed">`;
+      } else {
+        field.innerHTML = `<label for="anx-${f.id}">${f.label}</label><input id="anx-${f.id}" type="${f.type}"${f.step ? ` step="${f.step}"` : ""} style="width:100%">`;
+      }
+      wrap.appendChild(field);
+    });
+    d.append(summary, wrap);
+    root.appendChild(d);
+  });
+  root.addEventListener("input", () => { updateCalcFields(); updateBadges(); });
+}
+
+function updateBadges() {
+  ANX_SECTIONS.forEach(sec => {
+    const filled = sec.fields.filter(f => f.type !== "computed" && f.type !== "check").filter(f => anxInput(f.id).value.trim() !== "").length;
+    const checked = sec.fields.filter(f => f.type === "check").filter(f => anxInput(f.id).checked).length;
+    const valid = sec.fields.filter(f => f.type !== "computed").length;
+    const badge = document.querySelector(`[data-badge="${sec.id}"]`);
+    if (badge) {
+      badge.textContent = `${filled + checked}/${valid}`;
+      badge.classList.toggle("done", filled + checked === valid);
+    }
+  });
+}
+
+function collectAnx() {
+  const data = {};
+  ANX_FIELDS.forEach(f => {
+    if (f.type === "computed") return;
+    const el = anxInput(f.id);
+    data[f.id] = f.type === "check" ? el.checked : el.value.trim();
+  });
+  const info = imcInfo();
+  data.imc = info.imc;
+  data.classImc = info.cls;
+  return data;
+}
+
+function fillAnx(rec) {
+  ANX_FIELDS.forEach(f => {
+    const el = anxInput(f.id);
+    if (!el) return;
+    if (f.type === "check") el.checked = Boolean(rec.data[f.id]);
+    else if (f.type !== "computed") el.value = rec.data[f.id] || "";
+  });
+  updateCalcFields();
+  updateBadges();
+}
+
+function clearAnxForm() {
+  anxEditingId = null;
+  const dateEl = document.getElementById("anx-date");
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+  ANX_FIELDS.forEach(f => {
+    const el = anxInput(f.id);
+    if (!el) return;
+    if (f.type === "check") el.checked = false;
+    else if (f.type !== "computed") el.value = "";
+  });
+  document.getElementById("anx-date").value = new Date().toISOString().slice(0, 10);
+  updateCalcFields();
+  updateBadges();
+}
+
+function anxPatientName(id) {
+  const p = dbRead(DB.pacientes, []).find(x => x.id === id);
+  return p ? p.name : "—";
+}
+
+function renderAnxHistory() {
+  const rows = document.getElementById("anx-rows");
+  if (!rows) return;
+  const list = dbRead(DB.anamneses, []);
+  rows.innerHTML = "";
+  if (!list.length) {
+    rows.innerHTML = '<tr><td colspan="4" class="empty-note">Nenhuma ficha de anamnese salva ainda.</td></tr>';
+    return;
+  }
+  list.slice().reverse().forEach((rec, rIdx) => {
+    const idx = list.length - 1 - rIdx;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><strong>${rec.date.split("-").reverse().join("/")}</strong>${rec.updatedAt ? `<br><small style="opacity:.6">editada</small>` : ""}</td>
+      <td>${esc(anxPatientName(rec.patientId))}</td>
+      <td>${rec.data.imc ? rec.data.imc + ` <small style="opacity:.6">(${esc(rec.data.classImc || "")})</small>` : "—"}</td>
+      <td><div class="table-actions">
+        <button class="btn-mini" data-open="${idx}">📂 Abrir</button>
+        <button class="btn-mini danger" data-adel="${idx}">🗑️</button>
+      </div></td>`;
+    rows.appendChild(tr);
+  });
+  rows.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => {
+    const rec = dbRead(DB.anamneses, [])[Number(b.dataset.open)];
+    if (!rec) return;
+    document.getElementById("anx-patient").value = rec.patientId;
+    document.getElementById("anx-date").value = rec.date;
+    anxEditingId = rec.id;
+    fillAnx(rec);
+    document.querySelectorAll(".anx").forEach(d => d.open = true);
+    notify("Ficha carregada. Edite e salve para atualizar.");
+  }));
+  rows.querySelectorAll("[data-adel]").forEach(b => b.addEventListener("click", () => {
+    const list = dbRead(DB.anamneses, []);
+    list.splice(Number(b.dataset.adel), 1);
+    dbWrite(DB.anamneses, list);
+    renderAnxHistory();
+    notify("Ficha removida.");
+  }));
+}
+
+function initAnamnese() {
+  buildAnxForm();
+  clearAnxForm();
+  document.getElementById("anx-save").addEventListener("click", () => {
+    const patientId = document.getElementById("anx-patient").value;
+    const date = document.getElementById("anx-date").value;
+    if (!patientId) { notify("Selecione o paciente primeiro."); return; }
+    if (!date) { notify("Escolha a data da avaliação."); return; }
+    const list = dbRead(DB.anamneses, []);
+    const rec = { id: anxEditingId || uid(), patientId, date, data: collectAnx(), updatedAt: Date.now() };
+    if (anxEditingId) {
+      const idx = list.findIndex(r => r.id === anxEditingId);
+      if (idx >= 0) list[idx] = rec;
+    } else {
+      list.push(rec);
+    }
+    dbWrite(DB.anamneses, list);
+    renderAnxHistory();
+    notify("Ficha de anamnese salva! 📋✅");
+  });
+  document.getElementById("anx-new").addEventListener("click", () => {
+    clearAnxForm();
+    notify("Formulário limpo. Nova ficha pronta para preencher.");
+  });
+  document.getElementById("anx-print").addEventListener("click", () => {
+    document.querySelectorAll("details.anx").forEach(d => d.open = true);
+    window.print();
+  });
+}
+
+function refreshPatientSelects() {
+  const list = dbRead(DB.pacientes, []);
+  ["m-patient", "anx-patient"].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (sel) sel.innerHTML = '<option value="">— selecione —</option>' + list.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("");
+  });
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   initLogin();
   initTabs();
   initPatients();
+  initAnamnese();
   initMeetings();
   initConfig();
   initPassword();

@@ -217,3 +217,131 @@
 }
 
 .back-link:hover { text-decoration: underline; }
+
+.anx-controls {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.anx-controls .field { flex: 1; min-width: 180px; }
+
+.anx-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
+details.anx {
+  background: #fff;
+  border: 1px solid var(--bg-alt);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(23,51,42,0.05);
+  animation: fadeUp 0.3s ease;
+}
+
+details.anx[open] { box-shadow: 0 8px 22px rgba(23,51,42,0.09); }
+
+details.anx summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 20px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--text);
+  background: linear-gradient(90deg, rgba(47,191,113,0.06), transparent 60%);
+  transition: background var(--transition);
+  user-select: none;
+}
+
+details.anx summary::-webkit-details-marker { display: none; }
+
+details.anx summary:hover { background: rgba(47,191,113,0.1); }
+
+details.anx summary::after {
+  content: "▾";
+  font-size: 0.9rem;
+  opacity: 0.5;
+  transition: transform var(--transition);
+}
+
+details.anx[open] summary::after { transform: rotate(180deg); }
+
+details.anx[open] summary { border-bottom: 1px solid var(--bg-alt); }
+
+.anx-badge {
+  background: var(--bg-alt);
+  color: var(--primary-dark);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  margin-left: auto;
+}
+
+.anx-badge.done { background: var(--primary); color: #fff; }
+
+.anx-body { padding: 18px 20px; }
+
+.anx-body textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: #f7faf8;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  resize: vertical;
+  transition: border var(--transition);
+}
+
+.anx-body textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
+
+.anx-body input.computed {
+  background: var(--bg-alt);
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.anx-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 10px 0;
+}
+
+.anx-check input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+
+.admin-nav .anx-shortcut { padding-left: 16px; }
+
+@media print {
+  #particles, .admin-topbar, .admin-nav, .anx-controls, .btn-row,
+  details.anx summary, .panel-desc, #anx-rows, h3, .data-table { display: none !important; }
+  body { background: #fff !important; }
+  .admin-shell { display: block !important; }
+  .admin-panel { display: none !important; }
+  .admin-panel[data-panel="anamnese"] { display: block !important; }
+  .admin-body { display: block; margin: 0; padding: 0; max-width: none; }
+  .panel-card {
+    box-shadow: none !important;
+    background: #fff !important;
+    border: none !important;
+    padding: 0;
+  }
+  details.anx { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+  .anx-body { padding: 10px 14px; }
+  .anx-body input, .anx-body textarea { border: none; background: #fff; }
+  .field label { font-size: 0.8rem; }
+}

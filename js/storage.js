@@ -1,4 +1,5 @@
 const DB = {
+  anamneses: "nv-anamneses",
   pacientes: "nv-pacientes",
   config: "nv-config",
   reunioes: "reunioes-site",
