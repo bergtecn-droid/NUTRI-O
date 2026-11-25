@@ -55,6 +55,7 @@
         <button data-tab="anamnese">📋 Anamnese & Avaliação</button>
         <button data-tab="reunioes">🎥 Reuniões</button>
         <button data-tab="contato">📱 Contato & Links</button>
+        <button data-tab="nuvem">☁️ Nuvem</button>
         <button data-tab="seguranca">🔐 Senha</button>
       </nav>
 
@@ -134,6 +135,40 @@
           </div>
         </section>
 
+        <section class="admin-panel" data-panel="nuvem">
+          <div class="panel-card">
+            <h2>☁️ Sincronização na nuvem</h2>
+            <p class="panel-desc">Acesse o painel de qualquer aparelho, nunca perca cadastros. Usa o Firebase (Google), plano gratuito suficiente para a clínica começar.</p>
+            <details class="anx" open>
+              <summary><span>1️⃣ Criando sua conexão uma única vez (~5 min)</span></summary>
+              <div class="anx-body">
+                <ol class="steps">
+                  <li>Acesse <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a> com sua conta Google e clique em <strong>Adicionar projeto</strong> (nome: NutriViva, sem Analytics);</li>
+                  <li>No centro do projeto, clique no ícone <strong>&lt;/&gt; (Web)</strong>, registre o apelido <em>nutriviva-site</em> e copie o bloco <strong>firebaseConfig</strong> que aparece;</li>
+                  <li>No menu lateral: <strong>Build → Firestore Database → Criar banco de dados</strong> → região sugerida (southamerica) → inicie em <strong>modo de teste</strong>;</li>
+                  <li>Voltando ao painel, cole o firebaseConfig no campo abaixo e clique em <strong>Conectar</strong>;</li>
+                  <li>Pronto — cadastros de pacientes, anamneses, reuniões e contatos passam a sincronizar automaticamente entre todos os aparelhos que usarem este login.</li>
+                </ol>
+                <p class="hint">🔒 Nota de privacidade: no modo de teste os dados ficam protegidos pelo endereço do projeto, mas para uso clínico definitivo recomendamos ativar a autenticação e regras restritas — a gente ajusta junto na fase seguinte (LGPD).</p>
+              </div>
+            </details>
+            <details class="anx" open>
+              <summary><span>2️⃣ Configurar a conexão</span></summary>
+              <div class="anx-body">
+                <div class="field full" style="margin:0">
+                  <label for="fb-config">Cole aqui o seu objeto firebaseConfig</label>
+                  <textarea id="fb-config" rows="8" placeholder='{ "apiKey": "AIza...", "authDomain": "...", "projectId": "...", ... }'></textarea>
+                </div>
+                <div class="btn-row">
+                  <button class="btn btn-solid" id="fb-connect" type="button">☁️ Conectar agora</button>
+                  <button class="btn-mini danger" id="fb-disconnect" type="button" style="display:none">🔌 Desconectar</button>
+                </div>
+                <p class="hint" id="fb-status">Sem conexão — os dados ficam salvos apenas neste navegador.</p>
+              </div>
+            </details>
+          </div>
+        </section>
+
         <section class="admin-panel" data-panel="seguranca">
           <div class="panel-card">
             <h2>🔐 Senha do administrador</h2>
@@ -155,6 +190,7 @@
   <script src="js/theme-engine.js"></script>
   <script src="js/logo.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/cloud.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

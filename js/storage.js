@@ -17,6 +17,8 @@ function dbRead(key, fallback) {
 
 function dbWrite(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+  localStorage.setItem("nv-ts-" + key, String(Date.now()));
+  if (window.nvCloud && window.nvCloud.active) window.nvCloud.push(key);
 }
 
 function uid() {

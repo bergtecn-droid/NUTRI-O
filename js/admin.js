@@ -212,6 +212,39 @@ function renderMeetings() {
   }));
 }
 
+function meetingMessage(m, p) {
+  const d = m.date ? m.date.split("-").reverse().join("/") : "hoje";
+  const hr = m.time ? " às " + m.time : "";
+  return `Olá${p ? " " + p.name.split(" ")[0] : ""}! 🥑 Sua consulta online está marcada para ${d}${hr}.\n\nPara participar, clique no link ${m.date ? "5 minutos antes do horário" : ""}:\n${roomLink(m.room)}\n\nDicas: use fone de ouvido e procure um lugar silencioso. Até logo! 💚`;
+}
+
+function openShare(title, text, directPhone) {
+  document.getElementById("share-modal")?.remove();
+  const back = document.createElement("div");
+  back.id = "share-modal";
+  back.className = "modal-backdrop";
+  const wa = directPhone
+    ? waLink(directPhone, text)
+    : "https://wa.me/?text=" + encodeURIComponent(text);
+  back.innerHTML = `
+    <div class="modal-card">
+      <h3>${esc(title)}</h3>
+      <textarea readonly rows="8">${esc(text)}</textarea>
+      <div class="btn-row">
+        <a class="btn btn-solid" target="_blank" rel="noopener" href="${wa}">💬 Enviar por WhatsApp</a>
+        <button class="btn-mini" id="share-copy">📋 Copiar mensagem</button>
+        <button class="btn-mini" id="share-close">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+  back.querySelector("#share-copy").addEventListener("click", async () => {
+    await navigator.clipboard.writeText(text);
+    notify("Mensagem copiada! 📋");
+  });
+  back.querySelector("#share-close").addEventListener("click", () => back.remove());
+  back.addEventListener("click", e => { if (e.target === back) back.remove(); });
+}
+
 function initMeetings() {
   document.getElementById("meeting-form").addEventListener("submit", e => {
     e.preventDefault();
@@ -221,18 +254,19 @@ function initMeetings() {
     const type = document.getElementById("m-type").value;
     const room = (p ? p.name : "reuniao").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24) + "-" + uid();
     const list = dbRead(DB.reunioes, []);
-    list.push({
+    const m = {
       name: (p ? p.name + " · " : "") + type,
       room,
       patientId: patientId || null,
       date: document.getElementById("m-date").value,
       time: document.getElementById("m-time").value,
       createdAt: Date.now()
-    });
+    };
+    list.push(m);
     dbWrite(DB.reunioes, list);
     renderMeetings();
     e.target.reset();
-    notify("Sala criada! Copie o link ou envie por WhatsApp 📋");
+    openShare("Sala criada! Envie ao paciente", meetingMessage(m, p), p && p.phone);
   });
 }
 
@@ -540,6 +574,16 @@ function refreshPatientSelects() {
     if (sel) sel.innerHTML = '<option value="">— selecione —</option>' + list.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("");
   });
 }
+
+document.addEventListener("nv-cloud-synced", () => {
+  if (sessionOk) {
+    renderPatients();
+    renderMeetings();
+    fillPatientSelect();
+    renderAnxHistory();
+    fillConfigForm();
+  }
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   initLogin();

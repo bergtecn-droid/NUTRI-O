@@ -152,6 +152,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   renderMeetings();
   applySiteConfig();
+  document.addEventListener("nv-cloud-synced", () => {
+    renderMeetings();
+    applySiteConfig();
+  });
+
+  document.querySelectorAll(".card").forEach(c => c.classList.add("fading-in"));
 
   const toggle = document.getElementById("theme-toggle");
   const menu = document.getElementById("theme-menu");
