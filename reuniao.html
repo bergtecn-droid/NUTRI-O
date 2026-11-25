@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link id="favicon" rel="icon" href="data:,">
+  <title>Sala de Vídeo — NutriViva</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .lobby {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 6%;
+      background: var(--hero-gradient);
+      position: relative;
+      z-index: 6;
+    }
+    .lobby-card {
+      background: var(--glass);
+      backdrop-filter: blur(18px);
+      border-radius: 24px;
+      padding: 44px 40px;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .lobby-card .big-icon { font-size: 3rem; }
+    .lobby-logo { min-height: 0; margin-bottom: 4px; }
+    .lobby-logo:empty { display: none; }
+    .lobby-logo img { max-height: 72px; max-width: 220px; object-fit: contain; }
+    .lobby-card h1 { margin: 10px 0 8px; font-size: 1.7rem; }
+    .lobby-card p { opacity: 0.75; margin-bottom: 24px; }
+    .lobby-card .field { text-align: left; }
+    #video-root {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+    }
+    #video-root iframe, #video-root div {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .exit-room {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 60;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+      backdrop-filter: blur(8px);
+    }
+    .exit-room:hover { background: rgba(0,0,0,0.75); }
+  </style>
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <div class="lobby" id="lobby">
+    <div class="lobby-card">
+      <div class="lobby-logo" data-logo-slot></div>
+      <div class="big-icon">🎥</div>
+      <h1>Sala de videoconsulta</h1>
+      <p>Sem download, sem cadastro extra. Digite seu nome e entre direto pelo navegador.</p>
+      <form id="join-form">
+        <div class="field">
+          <label for="display-name">Seu nome</label>
+          <input id="display-name" type="text" placeholder="Ex.: Dra. Ana / Maria" required maxlength="40">
+        </div>
+        <button class="btn btn-solid" type="submit" style="width:100%; justify-content:center">
+          ✨ Entrar na reunião
+        </button>
+      </form>
+      <p style="margin-top:18px; margin-bottom:0">
+        <a href="index.html" style="color:var(--primary-dark); font-weight:700">← Voltar ao site</a>
+      </p>
+    </div>
+  </div>
+
+  <div id="video-root"></div>
+  <button class="exit-room" id="exit-room">✕ Sair da sala</button>
+
+  <script src="js/themes.js"></script>
+  <script src="js/theme-engine.js"></script>
+  <script src="js/logo.js"></script>
+  <script src="https://meet.jit.si/external_api.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const room = params.get("sala") || "consultorio-demo-" + Math.random().toString(36).slice(2, 8);
+    const cleanRoom = room.replace(/[^a-zA-Z0-9-]/g, "");
+
+    const heading = document.querySelector(".lobby-card h1");
+    heading.textContent = "Sala: " + cleanRoom;
+
+    let api = null;
+    const joinForm = document.getElementById("join-form");
+    joinForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("display-name").value.trim() || "Participante";
+      if (!window.JitsiMeetExternalAPI) {
+        alert("Não foi possível carregar o vídeo. Verifique sua conexão e recarregue a página.");
+        return;
+      }
+      document.getElementById("lobby").style.display = "none";
+      const root = document.getElementById("video-root");
+      root.style.display = "block";
+      document.getElementById("exit-room").style.display = "block";
+      api = new JitsiMeetExternalAPI("meet.jit.si", {
+        roomName: "nutriviva-" + cleanRoom,
+        parentNode: root,
+        width: "100%",
+        height: "100%",
+        userInfo: { displayName: name },
+        configOverwrite: {
+          prejoinPageEnabled: false,
+          startWithVideoMuted: false,
+          disableDeepLinking: true
+        },
+        interfaceConfigOverwrite: {
+          DEFAULT_LOGO_URL: "",
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          DEFAULT_REMOTE_DISPLAY_NAME: "Paciente"
+        }
+      });
+    });
+
+    document.getElementById("exit-room").addEventListener("click", () => {
+      if (api) api.dispose();
+      api = null;
+      document.getElementById("video-root").style.display = "none";
+      document.getElementById("exit-room").style.display = "none";
+      document.getElementById("lobby").style.display = "flex";
+    });
+  </script>
+</body>
+</html>
